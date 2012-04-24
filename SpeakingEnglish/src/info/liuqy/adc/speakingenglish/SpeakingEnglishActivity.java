@@ -21,10 +21,11 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TabHost;
 import android.widget.TabHost.OnTabChangeListener;
+import android.widget.TabHost.TabContentFactory;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class SpeakingEnglishActivity extends TabActivity {
+public class SpeakingEnglishActivity extends TabActivity implements TabContentFactory{
 
 	private static final String TAB1 = "TAB1";
 	private static final String TAB2 = "TAB2";
@@ -32,8 +33,8 @@ public class SpeakingEnglishActivity extends TabActivity {
 	private static final String CN2EN = "中译英";
 	private static final String EN2CN = "en2cn";
 	private static final String HAN2PIN = "汉字->拼音";
-	private static final int TAB_CN2EN = 1;
-	private static final int TAB_EN2CN = 0;
+	private static final int IDX_CN2EN = 1;
+	private static final int IDX_EN2CN = 0;
 
 	SharedPreferences mSharedPreferences;
 	SharedPreferences.Editor mEditor;
@@ -106,9 +107,9 @@ public class SpeakingEnglishActivity extends TabActivity {
 		TabHost.TabSpec tab1 = tabHost.newTabSpec(TAB1);
 		TabHost.TabSpec tab2 = tabHost.newTabSpec(TAB2);
 		TabHost.TabSpec tab3 = tabHost.newTabSpec(TAB3);
-		tabHost.addTab(tab1.setIndicator(EN2CN).setContent(R.id.mlist));
-		tabHost.addTab(tab2.setIndicator(CN2EN).setContent(R.id.mlist));
-		tabHost.addTab(tab3.setIndicator(HAN2PIN).setContent(R.id.mlist));
+		tabHost.addTab(tab1.setIndicator(EN2CN).setContent(this));
+		tabHost.addTab(tab2.setIndicator(CN2EN).setContent(this));
+		tabHost.addTab(tab3.setIndicator(HAN2PIN).setContent(this));
 
 		// 设定tab样式
 		for (int i = 0; i < tabHost.getTabWidget().getTabCount(); ++i) {
@@ -118,7 +119,7 @@ public class SpeakingEnglishActivity extends TabActivity {
 			tabHost.getTabWidget().getChildAt(i).getLayoutParams().height = 30;
 		}
 
-		mListView = (ListView) findViewById(R.id.mlist);
+		
 		// 监听list点击事件，翻译
 		mListView.setOnItemClickListener(new OnItemClickListener() {
 			@Override
@@ -131,7 +132,6 @@ public class SpeakingEnglishActivity extends TabActivity {
 				else
 					// English displayed now, refresh the display
 					adapter.notifyDataSetChanged();
-
 			}
 		});
 
@@ -139,10 +139,10 @@ public class SpeakingEnglishActivity extends TabActivity {
 		if (tab == null) {
 			// 识别系统语言环境
 			if ("zh".equals(Locale.getDefault().getLanguage())) {
-				tabHost.setCurrentTab(TAB_CN2EN);
+				tabHost.setCurrentTab(IDX_CN2EN);
 				changeAdapter(R.xml.cn2en, "cn");
 			} else if ("en".equals(Locale.getDefault().getLanguage())) {
-				tabHost.setCurrentTab(TAB_EN2CN);
+				tabHost.setCurrentTab(IDX_EN2CN);
 				changeAdapter(R.xml.cn2en, "en");
 			}
 		} else {
@@ -235,6 +235,12 @@ public class SpeakingEnglishActivity extends TabActivity {
 			xpp.next();
 		}
 		return exprs;
+	}
+
+	@Override
+	public View createTabContent(String tag) {
+		mListView = (ListView) findViewById(R.id.mlist);
+		return mListView;
 	}
 
 }
