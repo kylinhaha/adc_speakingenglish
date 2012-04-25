@@ -42,50 +42,20 @@ public class SpeakingEnglishActivity extends TabActivity implements TabContentFa
 	String mTabId = null;
 	ArrayAdapter<String> adapter;
 	ListView mListView;
+	Map<String, String> stackMap = new HashMap<String, String>();
 
 	// all expressions cn => en
 	Map<String, String> exprs = null;
 
 	private class DFA {
-		private static final int INIT_STATE = 0, EXPR_TAG = 1, CN_TAG = 2,
-				EN_TAG = 3,  PIN_TAG=4, CN_TEXT = 5, EN_TEXT = 6, PIN_TEXT=7,
-				PRE_FINAL = 8, FINAL_STATE = 9;
+		private static final int CN_TEXT = 1, EN_TEXT = 2, PIN_TEXT=3;
 		int currentState = 0;
-		Map<Integer, Map<String, Integer>> T = new HashMap<Integer, Map<String, Integer>>();
 
+		Map<String, Integer> map = new HashMap<String, Integer>();
 		public DFA() {
-			Map<String, Integer> m = new HashMap<String, Integer>();
-			m.put("expression", EXPR_TAG);
-			T.put(INIT_STATE, m);
-			m = new HashMap<String, Integer>();
-			m.put("cn", CN_TAG);
-			m.put("en", EN_TAG);
-			m.put("pin", PIN_TAG);
-			T.put(EXPR_TAG, m);
-			
-			m = new HashMap<String, Integer>();
-			m.put("text", CN_TEXT);
-			T.put(CN_TAG, m);
-			m = new HashMap<String, Integer>();
-			m.put("text", EN_TEXT);
-			T.put(EN_TAG, m);
-			m = new HashMap<String, Integer>();
-			m.put("text", PIN_TEXT);
-			T.put(PIN_TAG, m);
-			
-			m = new HashMap<String, Integer>();
-			m.put("cn", PRE_FINAL);
-			T.put(CN_TEXT, m);
-			m = new HashMap<String, Integer>();
-			m.put("en", PRE_FINAL);
-			T.put(EN_TEXT, m);
-			m = new HashMap<String, Integer>();
-			m.put("pin", PRE_FINAL);
-			T.put(PIN_TEXT, m);
-			
-			m = new HashMap<String, Integer>();
-			m.put("text", FINAL_STATE);
-			T.put(PRE_FINAL, m);
+			map.put("cn", CN_TEXT);
+			map.put("en", EN_TEXT);
+			map.put("pin", PIN_TEXT);
 		}
 
 		public void reset() {
@@ -93,9 +63,8 @@ public class SpeakingEnglishActivity extends TabActivity implements TabContentFa
 		}
 
 		public int nextState(String symbol) {
-			if (currentState != FINAL_STATE
-					&& T.get(currentState).containsKey(symbol))
-				currentState = T.get(currentState).get(symbol);
+			if (map.containsKey(symbol))
+				currentState = map.get(symbol);
 			return currentState;
 		}
 	}
@@ -129,7 +98,6 @@ public class SpeakingEnglishActivity extends TabActivity implements TabContentFa
 			tabHost.getTabWidget().getChildAt(i).getLayoutParams().height = 30;
 		}
 
-		
 		// ¼àÌýlistµã»÷ÊÂ¼þ£¬·­Òë
 		mListView.setOnItemClickListener(new OnItemClickListener() {
 			@Override
@@ -137,9 +105,12 @@ public class SpeakingEnglishActivity extends TabActivity implements TabContentFa
 					long arg3) {
 				TextView tv = (TextView) arg1;
 				String text = tv.getText().toString();
-				if (exprs.containsKey(text)) // Chinese displayed now
+				if (exprs.containsKey(text)){ // Chinese displayed now
 					tv.setText(exprs.get(text));
-				else
+					stackMap.put(exprs.get(text), text);
+				} else if (exprs.containsValue(text)) {
+					tv.setText(stackMap.get(text));
+				} else
 					// English displayed now, refresh the display
 					adapter.notifyDataSetChanged();
 			}
@@ -178,6 +149,7 @@ public class SpeakingEnglishActivity extends TabActivity implements TabContentFa
 					changeAdapter(R.xml.cn2en, "pin");
 				}
 				mTabId = tabId;
+				stackMap.clear();
 			}
 		});
 
@@ -219,37 +191,20 @@ public class SpeakingEnglishActivity extends TabActivity implements TabContentFa
 		DFA dfa = new DFA();
 		String cn = null, en = null, pin = null;
 		int eventType = xpp.getEventType();
+		int state = 0;
 		while (eventType != XmlPullParser.END_DOCUMENT) {
 
 			if (eventType == XmlPullParser.START_TAG) {
-				dfa.reset();
-				dfa.nextState(xpp.getName());
+				state = dfa.nextState(xpp.getName());
 			} else if (eventType == XmlPullParser.TEXT) {
-				int state = dfa.nextState("text");
 				if (state == DFA.CN_TEXT)
 					cn = xpp.getText();
 				else if (state == DFA.EN_TEXT)
 					en = xpp.getText();
 				else if (state == DFA.PIN_TEXT) {
 					pin = xpp.getText();
-				} 
-//				else if (state == DFA.FINAL_STATE) {
-//					if (cn == null)
-//						cn = xpp.getText();
-//					else if (en == null)
-//						en = xpp.getText();
-//					else if (pin == null) {
-//						pin = xpp.getText();
-//					}
-//					if ("cn".equals(language)) {
-//						exprs.put(cn, en);
-//					} else if ("en".equals(language)) {
-//						exprs.put(en, cn);
-//					} else {
-//						exprs.put(pin, cn);
-//					}
-//					cn = en = pin = null;
-//				}
+				}
+				dfa.reset();
 				if (cn != null && en != null && pin != null) {
 					if ("cn".equals(language)) {
 						exprs.put(cn, en);
@@ -260,7 +215,6 @@ public class SpeakingEnglishActivity extends TabActivity implements TabContentFa
 					}
 					cn = en = pin = null;
 				}
-				
 			}
 			eventType = xpp.next();
 		}
