@@ -48,8 +48,8 @@ public class SpeakingEnglishActivity extends TabActivity implements TabContentFa
 
 	private class DFA {
 		private static final int INIT_STATE = 0, EXPR_TAG = 1, CN_TAG = 2,
-				EN_TAG = 3, CN_TEXT = 4, EN_TEXT = 5, PRE_FINAL = 6,
-				FINAL_STATE = 7;
+				EN_TAG = 3,  PIN_TAG=4, CN_TEXT = 5, EN_TEXT = 6, PIN_TEXT=7,
+				PRE_FINAL = 8, FINAL_STATE = 9;
 		int currentState = 0;
 		Map<Integer, Map<String, Integer>> T = new HashMap<Integer, Map<String, Integer>>();
 
@@ -60,7 +60,9 @@ public class SpeakingEnglishActivity extends TabActivity implements TabContentFa
 			m = new HashMap<String, Integer>();
 			m.put("cn", CN_TAG);
 			m.put("en", EN_TAG);
+			m.put("pin", PIN_TAG);
 			T.put(EXPR_TAG, m);
+			
 			m = new HashMap<String, Integer>();
 			m.put("text", CN_TEXT);
 			T.put(CN_TAG, m);
@@ -68,18 +70,26 @@ public class SpeakingEnglishActivity extends TabActivity implements TabContentFa
 			m.put("text", EN_TEXT);
 			T.put(EN_TAG, m);
 			m = new HashMap<String, Integer>();
-			m.put("en", PRE_FINAL);
-			T.put(CN_TEXT, m);
+			m.put("text", PIN_TEXT);
+			T.put(PIN_TAG, m);
+			
 			m = new HashMap<String, Integer>();
 			m.put("cn", PRE_FINAL);
+			T.put(CN_TEXT, m);
+			m = new HashMap<String, Integer>();
+			m.put("en", PRE_FINAL);
 			T.put(EN_TEXT, m);
+			m = new HashMap<String, Integer>();
+			m.put("pin", PRE_FINAL);
+			T.put(PIN_TEXT, m);
+			
 			m = new HashMap<String, Integer>();
 			m.put("text", FINAL_STATE);
 			T.put(PRE_FINAL, m);
 		}
 
 		public void reset() {
-			currentState = 0;
+			currentState = 1;
 		}
 
 		public int nextState(String symbol) {
@@ -152,7 +162,7 @@ public class SpeakingEnglishActivity extends TabActivity implements TabContentFa
 			} else if ("TAB2".equals(tab)) {
 				changeAdapter(R.xml.cn2en, "cn");
 			} else {
-				changeAdapter(R.xml.hanzi2pinyin, "en");
+				changeAdapter(R.xml.cn2en, "pin");
 			}
 		}
 
@@ -165,7 +175,7 @@ public class SpeakingEnglishActivity extends TabActivity implements TabContentFa
 				} else if (TAB2.equals(tabId)) {
 					changeAdapter(R.xml.cn2en, "cn");
 				} else {
-					changeAdapter(R.xml.hanzi2pinyin, "en");
+					changeAdapter(R.xml.cn2en, "pin");
 				}
 				mTabId = tabId;
 			}
@@ -207,32 +217,52 @@ public class SpeakingEnglishActivity extends TabActivity implements TabContentFa
 		Map<String, String> exprs = new HashMap<String, String>();
 		XmlPullParser xpp = getResources().getXml(resourceId);
 		DFA dfa = new DFA();
-		String cn = null, en = null;
-		while (xpp.getEventType() != XmlPullParser.END_DOCUMENT) {
-			if (xpp.getEventType() == XmlPullParser.START_TAG) {
+		String cn = null, en = null, pin = null;
+		int eventType = xpp.getEventType();
+		while (eventType != XmlPullParser.END_DOCUMENT) {
+
+			if (eventType == XmlPullParser.START_TAG) {
+				dfa.reset();
 				dfa.nextState(xpp.getName());
-			} else if (xpp.getEventType() == XmlPullParser.TEXT) {
+			} else if (eventType == XmlPullParser.TEXT) {
 				int state = dfa.nextState("text");
 				if (state == DFA.CN_TEXT)
 					cn = xpp.getText();
 				else if (state == DFA.EN_TEXT)
 					en = xpp.getText();
-				else if (state == DFA.FINAL_STATE) {
-					if (cn == null)
-						cn = xpp.getText();
-					else if (en == null)
-						en = xpp.getText();
-
+				else if (state == DFA.PIN_TEXT) {
+					pin = xpp.getText();
+				} 
+//				else if (state == DFA.FINAL_STATE) {
+//					if (cn == null)
+//						cn = xpp.getText();
+//					else if (en == null)
+//						en = xpp.getText();
+//					else if (pin == null) {
+//						pin = xpp.getText();
+//					}
+//					if ("cn".equals(language)) {
+//						exprs.put(cn, en);
+//					} else if ("en".equals(language)) {
+//						exprs.put(en, cn);
+//					} else {
+//						exprs.put(pin, cn);
+//					}
+//					cn = en = pin = null;
+//				}
+				if (cn != null && en != null && pin != null) {
 					if ("cn".equals(language)) {
 						exprs.put(cn, en);
-					} else {
+					} else if ("en".equals(language)) {
 						exprs.put(en, cn);
+					} else {
+						exprs.put(pin, cn);
 					}
-					dfa.reset();
-					cn = en = null;
+					cn = en = pin = null;
 				}
+				
 			}
-			xpp.next();
+			eventType = xpp.next();
 		}
 		return exprs;
 	}

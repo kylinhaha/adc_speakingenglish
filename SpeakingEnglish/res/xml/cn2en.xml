@@ -3,21 +3,26 @@
     <expression>
         <cn>你好！</cn>
         <en>How are you!</en>
+        <pin>ni hao</pin>
     </expression>
     <expression>
         <cn>谢谢！</cn>
         <en>Thank you!</en>
+        <pin>xie xie!</pin>
     </expression>
     <expression>
         <cn>早上好！</cn>
         <en>Good morning!</en>
+        <pin>zao shang hao!</pin>
     </expression>
     <expression>
         <cn>周末愉快！</cn>
         <en>Nice weekend!</en>
+        <pin>zhou mo yu kuai!</pin>
     </expression>
     <expression>
         <cn>今天天气不错！</cn>
         <en>It's nice today!</en>
+        <pin>jin tian tian qi bu cuo!</pin>
     </expression>
 </expressions>
